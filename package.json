@@ -1,0 +1,16 @@
+{
+  "name": "sendflow",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "web",
+    "functions"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @sendflow/web",
+    "build": "npm run build --workspace @sendflow/web",
+    "build:functions": "npm run build --workspace sendflow-functions",
+    "lint": "npm run lint --workspace @sendflow/web",
+    "preview": "npm run preview --workspace @sendflow/web"
+  }
+}
