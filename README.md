@@ -1,57 +1,48 @@
 # SendFlow
 
-Aplicação de broadcast com React, TypeScript, Vite e Firebase. O repositório separa a interface em `web/` e as Cloud Functions em `functions/`.
+Projeto de teste para organizar conexões e contatos e simular o envio de mensagens em grupo. A interface fica em `web/` e as Cloud Functions, em `functions/`.
 
-## Estrutura de dados
+Feito com React, TypeScript, Vite, Material UI, Tailwind CSS e Firebase.
 
-São usadas somente collections de nível superior no Firestore:
+## Rodar localmente
 
-- `connections`: `{ tenantId, name, createdAt, updatedAt }`
-- `contacts`: `{ tenantId, connectionId, name, phone, createdAt, updatedAt }`
-- `messages`: `{ tenantId, connectionId, contactIds, body, status, scheduledAt, createdAt, updatedAt }`
+Você precisa do Node.js 22 ou mais recente e de um projeto Firebase.
 
-O `tenantId` é sempre o UID obtido da sessão do Firebase Authentication. As regras do Firestore comparam o UID autenticado com `tenantId` em leituras e gravações e conferem que contatos e mensagens referenciem uma conexão do mesmo tenant. As Cloud Functions repetem as verificações antes de executar operações privilegiadas. Não são usadas subcoleções.
-
-## Requisitos locais
-
-- Node.js 22 ou superior
-- Projeto Firebase com Authentication (e-mail/senha), Firestore, Functions e Hosting
-
-## Configuração
-
-1. Crie um projeto Firebase e registre uma aplicação Web.
-2. Ative o método de autenticação por e-mail e senha e crie o banco Firestore.
-3. Copie `web/.env.example` para `web/.env.local` e preencha as credenciais da aplicação Web.
-4. Selecione o projeto Firebase para o Firebase CLI antes de publicar.
-
-As variáveis `VITE_*` são públicas no bundle web. Não coloque credenciais de conta de serviço ou outras chaves privadas nelas.
-
-## Desenvolvimento e validação
+1. No Firebase Console, crie uma aplicação Web, ative o login por e-mail e senha e crie o Firestore.
+2. Copie `web/.env.example` para `web/.env.local` e preencha os valores da configuração Web do Firebase.
+3. Na raiz do projeto, instale as dependências e inicie o app:
 
 ```sh
 npm install
 npm run dev
+```
+
+Para conferir o projeto e as Functions:
+
+```sh
 npm run build
 npm run build:functions
 npm run lint
 ```
 
-## Emuladores
+## Como os dados ficam separados
 
-Execute os emuladores Auth, Firestore e Functions nas portas definidas em `firebase.json` e defina `VITE_USE_FIREBASE_EMULATORS=true` em `web/.env.local`. Inicie o Vite em outro terminal.
+O Firestore usa três collections, sem subcollections: `connections`, `contacts` e `messages`. Cada documento tem um `tenantId`, que é o UID do usuário autenticado. Contatos e mensagens também guardam o `connectionId`.
 
-## Mensagens e agendamento
+As regras do Firestore limitam o acesso aos documentos do próprio usuário. As operações de mensagem e a exclusão de uma conexão passam pelas Cloud Functions, que também verificam a conta dona dos dados.
 
-O envio é uma simulação, sem integração com SMS ou WhatsApp. Mensagens imediatas são registradas como `sent`; mensagens futuras ficam como `scheduled`. A Cloud Function `sendScheduledBroadcasts` verifica a cada minuto as mensagens vencidas e as atualiza para `sent`, mesmo que nenhum cliente esteja conectado.
+## Mensagens agendadas
 
-A função agendada usa Cloud Scheduler. Para implantá-la no Firebase é necessário habilitar faturamento/Plano Blaze no projeto. A precisão do disparo é de até aproximadamente um minuto, conforme a periodicidade do agendador.
+O envio é simulado: não há integração com SMS ou WhatsApp. Mensagens imediatas ficam como `sent`; as agendadas ficam como `scheduled` e uma Cloud Function as marca como enviadas quando chega o horário.
 
-As mensagens podem ser editadas e excluídas no histórico; essas alterações passam por Cloud Functions que verificam o `tenantId` antes de acessar o registro.
+A verificação roda a cada minuto usando Cloud Scheduler. Para publicar Functions e usar esse agendamento, o projeto Firebase precisa do plano Blaze, que pode gerar cobranças.
 
-## Firebase Hosting
+## Publicar
 
-O Hosting publica `web/dist`. O predeploy executa o build da interface. Publique Hosting, Firestore Rules, índices e Functions depois de configurar seu projeto Firebase:
+Configure o projeto no Firebase CLI e execute, na raiz:
 
 ```sh
 npx firebase-tools deploy
 ```
+
+O Hosting publica `web/dist`. As regras e os índices do Firestore estão em `firestore.rules` e `firestore.indexes.json`.
